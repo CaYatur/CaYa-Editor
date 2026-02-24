@@ -64,4 +64,73 @@ CaYa Editor; farklı ihtiyaçlara göre **yerel** ve **bulut** seçeneklerini de
 
 ---
 
+## CaYa Editor için Ollama Kurulumu + Önerilen Modeller
+
+- **Amaç:** CaYa Editor’ü **Ollama (Yerel)** ile kullanmak ve önerilen modelleri kurmak.
+- **Not:** Modeller indirildikten sonra **run komutu çalıştırmanız gerekmez**. CaYa Editor seçtiğiniz modeli otomatik kullanır.
+
+---
+
+### 1) Ollama Kurulumu (Windows)
+
+- Tarayıcıdan **ollama.com** adresine girin.
+- Windows için Ollama kurulum dosyasını indirin.
+- Kurulumu normal şekilde tamamlayın.
+- (İsteğe bağlı kontrol) PowerShell veya CMD açıp şu komutla sürümü kontrol edin:
+  - `ollama --version`
+
+---
+
+### 2) CaYa Editor Ayarları (Ollama’yı Bağla)
+
+- CaYa Editor’ü açın.
+- **Ayarlar (Settings)** bölümüne girin.
+- **AI Provider / Sağlayıcı** olarak **Ollama (Yerel)** seçin.
+- **API Base URL** alanına şunu yazın:
+  - `http://localhost:11434`
+- **Modeleri Yenile / Refresh Models** butonuna basın.
+- (Uzak sunucu kullanıyorsanız) localhost yerine sunucu IP/domain yazın:
+  - Örnek: `http://192.168.1.50:11434`
+
+---
+
+### 3) Önerilen Modelleri İndir (Model Kurulumu = Pull)
+
+- PowerShell veya CMD açın.
+- **Chat / Agent (Kod yazma için test edildi ve önerilir):**
+  - Model: glm-4.7-flash:latest
+  - İndirme Komut:
+    - `ollama pull glm-4.7-flash:latest`
+- **Otomatik Tamamlama (Hızlı ve hafif):**
+  - Model: llama3.2:1b
+  - İndirme Komut:
+    - `ollama pull llama3.2:1b`
+- (İsteğe bağlı) Kurulu modelleri görmek için:
+  - `ollama list`
+
+---
+
+### 4) CaYa Editor’de Model Seç (Önerilen Kombinasyon)
+
+- CaYa Editor → **Ayarlar** bölümünde şu seçimleri yapın:
+  - **Agent Modeli:** `glm-4.7-flash:latest`
+  - **Chat (Sohbet) Modeli:** `glm-4.7-flash:latest`
+  - **Autocomplete (Kod Tamamlama) Modeli:** `llama3.2:1b`
+- Son olarak **Modeleri Yenile / Refresh Models** butonuna tekrar basın.
+
+---
+
+### 5) Hızlı Sorun Giderme (Model listesi görünmüyorsa)
+
+- Ollama kurulu mu kontrol edin:
+  - `ollama --version`
+- Modeller inmiş mi kontrol edin:
+  - `ollama list`
+- CaYa Editor’de şunlar doğru mu kontrol edin:
+  - Sağlayıcı: **Ollama (Yerel)**
+  - Base URL: `http://localhost:11434`
+  - Ardından **Modeleri Yenile / Refresh Models**’e basın.
+
+---
+
 > **CaYa Editor**, hız ve pratikliği korurken; AI sohbeti, agent modu ve çoklu sağlayıcı desteğiyle geliştirme sürecini tek bir merkezde toplar.
