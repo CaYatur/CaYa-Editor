@@ -1,0 +1,422 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' http://localhost:11434; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;">
+  <title>CaYaDev Basic AI Code Editor</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Monaco Editor -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.css">
+
+  <!-- xterm.js (local dependency) -->
+  <link rel="stylesheet" href="../node_modules/xterm/css/xterm.css">
+
+  <!-- Custom CSS (with cache busting) -->
+  <link rel="stylesheet" href="styles.css?v=2.0.0">
+</head>
+<body>
+  <!-- ============ TITLE BAR ============ -->
+  <div id="titlebar">
+    <div class="titlebar-drag">
+      <div class="titlebar-logo">
+        <img src="../assets/CaYaDevText.svg" alt="CaYaDevText" class="titlebar-logo-text">
+        <span class="titlebar-subtitle">Basic AI Code Editor</span>
+      </div>
+    </div>
+    <div class="titlebar-controls">
+      <button class="titlebar-btn" id="btn-minimize" title="Küçült">
+        <i data-lucide="minus" class="icon-sm"></i>
+      </button>
+      <button class="titlebar-btn" id="btn-maximize" title="Büyüt">
+        <i data-lucide="square" class="icon-sm"></i>
+      </button>
+      <button class="titlebar-btn titlebar-btn-close" id="btn-close" title="Kapat">
+        <i data-lucide="x" class="icon-sm"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ MAIN LAYOUT ============ -->
+  <div id="main-container">
+    <!-- ============ SIDEBAR ============ -->
+    <div id="sidebar">
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-panel="explorer" title="Dosya Gezgini">
+          <i data-lucide="folder"></i>
+        </button>
+        <button class="sidebar-tab" data-panel="ai-chat" title="AI Sohbet">
+          <i data-lucide="bot"></i>
+        </button>
+        <button class="sidebar-tab" data-panel="ai-agent" title="AI Agent">
+          <i data-lucide="cpu"></i>
+        </button>
+        <button class="sidebar-tab" data-panel="settings" title="Ayarlar">
+          <i data-lucide="settings"></i>
+        </button>
+      </div>
+
+      <!-- ===== EXPLORER PANEL ===== -->
+      <div class="sidebar-panel active" id="panel-explorer">
+        <div class="panel-header">
+          <span>DOSYA GEZGİNİ</span>
+          <div class="panel-actions">
+            <button class="icon-btn" id="btn-open-folder" title="Klasör Aç">
+              <i data-lucide="folder-open"></i>
+            </button>
+            <button class="icon-btn" id="btn-new-file" title="Yeni Dosya">
+              <i data-lucide="file-plus"></i>
+            </button>
+            <button class="icon-btn" id="btn-new-folder" title="Yeni Klasör">
+              <i data-lucide="folder-plus"></i>
+            </button>
+            <button class="icon-btn" id="btn-refresh-tree" title="Yenile">
+              <i data-lucide="refresh-cw"></i>
+            </button>
+          </div>
+        </div>
+        <div id="file-tree" class="panel-content">
+          <div class="empty-state">
+            <i data-lucide="folder-open" class="empty-icon"></i>
+            <p>Proje dizini açılmadı</p>
+            <button class="btn btn-primary" id="btn-open-project">
+              Klasör Aç
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== AI CHAT PANEL ===== -->
+      <div class="sidebar-panel" id="panel-ai-chat">
+        <div class="panel-header">
+          <span>AI SOHBET</span>
+          <div class="panel-actions">
+            <button class="icon-btn" id="btn-clear-chat" title="Sohbeti Temizle">
+              <i data-lucide="trash-2"></i>
+            </button>
+          </div>
+        </div>
+        <div class="panel-content" id="ai-chat-panel">
+          <div class="ai-model-select">
+            <label>Sohbet Modeli:</label>
+            <select id="chat-model-select">
+              <option value="">Model yükleniyor...</option>
+            </select>
+          </div>
+          <div id="chat-messages" class="chat-messages">
+            <div class="chat-welcome">
+              <i data-lucide="bot" class="welcome-icon"></i>
+              <h3>CaYaDev AI Asistan</h3>
+              <p>Kod hakkında sorular sorun, düzenleme isteyin veya yeni dosya olu?turun.</p>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <div class="chat-context-bar" id="chat-context-bar" style="display:none;">
+              <span class="context-label">
+                <i data-lucide="file-code" class="icon-xs"></i>
+                <span id="chat-context-filename"></span>
+              </span>
+              <button class="icon-btn-xs" id="btn-remove-context">
+                <i data-lucide="x" class="icon-xs"></i>
+              </button>
+            </div>
+            <textarea id="chat-input" placeholder="Mesajınızı yazın... (Enter gönder, Shift+Enter yeni satır)" rows="3"></textarea>
+            <div class="chat-input-actions">
+              <button class="icon-btn" id="btn-attach-file" title="Mevcut dosyayı ekle">
+                <i data-lucide="paperclip"></i>
+              </button>
+              <button class="btn btn-primary btn-sm" id="btn-send-chat">
+                <i data-lucide="send" class="icon-xs"></i>
+                Gönder
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== AI AGENT PANEL ===== -->
+      <div class="sidebar-panel" id="panel-ai-agent">
+        <div class="panel-header">
+          <span>AI AGENT</span>
+          <div class="panel-actions">
+            <button class="icon-btn" id="btn-clear-agent" title="Agent'ı Sıfırla">
+              <i data-lucide="refresh-cw"></i>
+            </button>
+          </div>
+        </div>
+        <div class="panel-content" id="ai-agent-panel">
+          <div class="ai-model-select">
+            <label>Agent Modeli:</label>
+            <select id="agent-model-select">
+              <option value="">Model yükleniyor...</option>
+            </select>
+          </div>
+          <div class="agent-info-box">
+            <i data-lucide="shield-alert" class="icon-sm"></i>
+            <div>
+              <strong>Agent Modu</strong>
+              <p>Yapay zeka proje dizinindeki dosyaları oluşturabilir, düzenleyebilir ve silebilir. Silme işlemleri için onay istenecektir.</p>
+            </div>
+          </div>
+          <div class="agent-chat-wrapper">
+            <div id="agent-messages" class="chat-messages">
+              <div class="chat-welcome">
+                <i data-lucide="cpu" class="welcome-icon"></i>
+                <h3>CaYaDev AI Agent</h3>
+                <p>Proje dosyalarını analiz eder, düzenler, oluşturur ve siler. Komut verin!</p>
+              </div>
+            </div>
+            <div id="agent-changes-bar" class="agent-changes-bar" aria-hidden="true">
+              <div class="agent-changes-controls">
+                <button id="btn-toggle-changes" class="icon-btn-xs" title="Göstergeleri daralt/genişlet"><i data-lucide="chevron-down" class="icon-xs"></i></button>
+                <button id="btn-move-changes" class="icon-btn-xs" title="Aşağı / Yukarı taşı"><i data-lucide="corner-down-left" class="icon-xs"></i></button>
+                <span class="agent-changes-label">Değişiklikler</span>
+              </div>
+            </div>
+            <div id="agent-changes" class="agent-changes"></div>
+          </div>
+          <div class="chat-input-area">
+            <div class="agent-options">
+              <label class="checkbox-label">
+                <input type="checkbox" id="agent-include-project" checked>
+                <span>Proje yapısını gönder</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="agent-include-current-file">
+                <span>Mevcut dosyayı gönder</span>
+              </label>
+            </div>
+            <textarea id="agent-input" placeholder="Agent'a komut verin... (örn: 'src/utils.js dosyasını oluştur')" rows="3"></textarea>
+            <div class="chat-input-actions">
+              <button class="btn btn-primary btn-sm" id="btn-send-agent" title="Komutu çalıştır">
+                <i data-lucide="send" class="icon-xs"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SETTINGS PANEL ===== -->
+      <div class="sidebar-panel" id="panel-settings">
+        <div class="panel-header">
+          <span>AYARLAR</span>
+        </div>
+        <div class="panel-content settings-panel">
+          <div class="setting-group">
+            <h4>Arayüz Dili</h4>
+            <div class="setting-row">
+              <label>Dil:</label>
+              <select id="settings-ui-language" class="setting-select">
+                <option value="system">Sistem (Otomatik)</option>
+                <option value="tr">Türkçe</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <p class="setting-note">Sistem görüntüleme dili varsayılan olarak seçilir; sonradan buradan değiştirilebilir.</p>
+          </div>
+          <div class="setting-group">
+            <h4>AI Sağlayıcı</h4>
+            <div class="setting-row">
+              <label>Sağlayıcı:</label>
+              <select id="settings-provider-type" class="setting-select">
+                <option value="ollama">Ollama (Yerel)</option>
+                <option value="openai">OpenAI</option>
+                <option value="claude">Claude (Anthropic)</option>
+                <option value="grok">Grok (xAI)</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="github-models">GitHub Models</option>
+                <option value="custom-openai">Custom (OpenAI-Compatible)</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <label>API Base URL:</label>
+              <input type="text" id="settings-provider-baseurl" class="setting-input" placeholder="https://api.openai.com/v1">
+            </div>
+            <div class="setting-row">
+              <label>API Key:</label>
+              <input type="password" id="settings-provider-apikey" class="setting-input" placeholder="sk-...">
+            </div>
+            <div class="setting-row">
+              <label id="settings-provider-models-label" for="settings-provider-models">Model Listesi (opsiyonel):</label>
+            </div>
+            <textarea id="settings-provider-models" class="setting-textarea" rows="3" placeholder="gpt-4o&#10;gpt-4.1-mini&#10;claude-3-5-sonnet"></textarea>
+            <p class="setting-note">Model endpoint'i kapalıysa modeli satır satır veya virgülle gir. Bu ayarlar <code>~/.CaYaDevEditor/settings.json</code> içine kaydedilir.</p>
+            <div class="setting-row">
+              <label>Durum:</label>
+              <span id="ollama-status" class="status-badge status-checking">Kontrol ediliyor...</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-models">
+              <i data-lucide="refresh-cw" class="icon-xs"></i>
+              Modelleri Yenile
+            </button>
+          </div>
+
+          <div class="setting-group">
+            <h4>Sohbet Modeli</h4>
+            <select id="settings-chat-model" class="setting-select">
+              <option value="">Yükleniyor...</option>
+            </select>
+          </div>
+
+          <div class="setting-group">
+            <h4>Agent Modeli</h4>
+            <select id="settings-agent-model" class="setting-select">
+              <option value="">Yükleniyor...</option>
+            </select>
+          </div>
+
+          <div class="setting-group">
+            <h4>Otomatik Tamamlama Modeli</h4>
+            <select id="settings-autocomplete-model" class="setting-select">
+              <option value="">Devre Dışı</option>
+            </select>
+            <label class="checkbox-label">
+              <input type="checkbox" id="autocomplete-enabled" checked>
+              <span>Otomatik tamamlama etkin</span>
+            </label>
+          </div>
+          <div class="setting-group">
+            <h4>Prompt Çeviri (Opsiyonel)</h4>
+            <label class="checkbox-label">
+              <input type="checkbox" id="settings-translate-enabled">
+              <span>Promptu önce İngilizceye çevir</span>
+            </label>
+            <select id="settings-translate-model" class="setting-select" disabled>
+              <option value="">Model yükleniyor...</option>
+            </select>
+            <p class="setting-note">Etkin olduğunda, yazdığın prompt seçilen model ile İngilizceye çevrilir ve sonra Chat/Agent modeline gönderilir.</p>
+          </div>
+
+          <div class="setting-group">
+            <h4>Editör</h4>
+            <div class="setting-row">
+              <label>Yazı Boyutu:</label>
+              <input type="number" id="settings-fontsize" value="14" min="10" max="30" class="setting-input-sm">
+            </div>
+            <div class="setting-row">
+              <label>Tab Boyutu:</label>
+              <input type="number" id="settings-tabsize" value="2" min="1" max="8" class="setting-input-sm">
+            </div>
+            <label class="checkbox-label">
+              <input type="checkbox" id="settings-wordwrap">
+              <span>Kelime Sarma</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="settings-minimap" checked>
+              <span>Minimap</span>
+            </label>
+          </div>
+
+          <div class="setting-group">
+            <h4>Hakkında</h4>
+            <div class="about-info">
+              <p><strong>CaYaDev Basic AI Code Editor</strong></p>
+              <p id="about-version" data-version="1.0.0">Versiyon 1.0.0</p>
+              <p class="about-link">cayadev.com</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="left-panel-resize-handle" class="panel-resize-handle" aria-hidden="true"></div>
+    <div id="right-panel-resize-handle" class="panel-resize-handle" aria-hidden="true"></div>
+
+    <!-- ============ EDITOR AREA ============ -->
+    <div id="editor-area">
+      <!-- Tabs -->
+      <div id="editor-tabs">
+        <div id="tabs-list"></div>
+      </div>
+
+      <!-- Editor Container -->
+      <div id="editor-container">
+        <div id="editor-welcome" class="editor-welcome">
+          <div class="welcome-content">
+            <div class="welcome-brand">
+              <img src="../assets/CaYaDevText.svg" alt="CaYaDevText" class="welcome-brand-text">
+            </div>
+            <h2>Basic AI Code Editor</h2>
+            <p>Yapay zeka kod editörü</p>
+            <div class="welcome-shortcuts">
+              <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>O</kbd> Klasör Aç</div>
+              <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>S</kbd> Kaydet</div>
+              <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>`</kbd> Terminal</div>
+              <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>Space</kbd> AI Tamamlama</div>
+            </div>
+          </div>
+        </div>
+        <div id="monaco-editor" style="display:none;"></div>
+      </div>
+
+      <!-- Resize Handle -->
+      <div id="terminal-resize-handle"></div>
+
+      <!-- Terminal -->
+      <div id="terminal-container" style="display:none;">
+        <div id="terminal-header">
+          <span>
+            <i data-lucide="terminal" class="icon-xs"></i>
+            Terminal
+          </span>
+          <div class="terminal-actions">
+            <button class="icon-btn" id="btn-terminal-toggle" title="Terminal Aç/Kapat">
+              <i data-lucide="chevron-down" class="icon-sm"></i>
+            </button>
+            <button class="icon-btn" id="btn-terminal-kill" title="Terminal'i Kapat">
+              <i data-lucide="x" class="icon-sm"></i>
+            </button>
+          </div>
+        </div>
+        <div id="terminal-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STATUS BAR ============ -->
+  <div id="statusbar">
+    <div class="statusbar-left">
+      <span id="status-project" class="status-item" title="Proje Dizini">
+        <i data-lucide="folder" class="icon-xs"></i>
+        <span>Proje açılmadı</span>
+      </span>
+      <span id="status-trust" class="status-item status-untrusted" title="Güven Durumu">
+        <i data-lucide="shield-off" class="icon-xs"></i>
+        <span>Güvenilmez</span>
+      </span>
+    </div>
+    <div class="statusbar-center">
+      <span id="status-ai" class="status-item">
+        <i data-lucide="bot" class="icon-xs"></i>
+        <span id="status-ai-text">AI Hazır</span>
+      </span>
+    </div>
+    <div class="statusbar-right">
+      <span id="status-language" class="status-item">Düz Metin</span>
+      <span id="status-encoding" class="status-item">UTF-8</span>
+      <span id="status-line" class="status-item">Satır 1, Sütun 1</span>
+      <button class="status-item status-btn" id="btn-toggle-terminal" title="Terminal Aç/Kapat">
+        <i data-lucide="terminal" class="icon-xs"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ NOTIFICATION TOAST ============ -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  <script src="../node_modules/xterm/lib/xterm.js"></script>
+  <script src="../node_modules/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+  <script src="../node_modules/xterm-addon-web-links/lib/xterm-addon-web-links.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9.1.0/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="icons.js"></script>
+  <script src="prompts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
