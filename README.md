@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # CaYa Editor — Basic AI Code Editor
 
 **CaYa Editor**, yapay zeka destekli modern bir kod editörüdür. Hedefi; klasik editör hızını korurken, yerel veya bulut tabanlı yapay zekâ sağlayıcılarıyla **sohbet**, **agent** ve **otomatik tamamlama** gibi gelişmiş özellikleri tek yerde sunmaktır.
